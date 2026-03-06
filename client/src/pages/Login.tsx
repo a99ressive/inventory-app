@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axios';
 import { TextField, Button, Container, Typography, Box } from '@mui/material';
 
@@ -16,7 +16,7 @@ const Login: React.FC = () => {
       });
       localStorage.setItem('token', res.data.token);
       navigate('/inventories'); // пока не создано, но позже
-    } catch (err) {
+    } catch {
       alert('Login failed');
     }
   };
@@ -47,6 +47,10 @@ const Login: React.FC = () => {
           <Button type="submit" fullWidth variant="contained" sx={{ mt: 2 }}>
             Sign In
           </Button>
+
+          <Box sx={{ mt: 2, textAlign: 'center' }}>
+            <Link to="/register">Don't have an account? Register</Link>
+          </Box>
         </form>
       </Box>
     </Container>

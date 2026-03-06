@@ -31,7 +31,7 @@ const CreateInventory: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await api.post('/Inventory', {
+      await api.post('/Inventory', {
         title,
         description,
         inventoryTypeId,

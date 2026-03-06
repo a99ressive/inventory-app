@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import api from '../api/axios';
+import type { Item } from '../types';
 
 // Импортируем тип Item, если он есть в проекте
 // import { Item } from '../types';
@@ -22,7 +23,7 @@ interface ItemFormModalProps {
   open: boolean;
   onClose: () => void;
   inventoryId: string;
-  item?: any; // объект предмета для редактирования
+  item?: Item; // объект предмета для редактирования
   onSuccess: () => void;
 }
 
@@ -60,8 +61,8 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
 
   useEffect(() => {
     if (item) {
-      setValue('customId', item.customId);
-      setValue('data', JSON.stringify(item.data, null, 2));
+      setValue('customId', item.CustomId);
+      setValue('data', JSON.stringify(item.Data, null, 2));
     } else {
       reset();
     }
@@ -76,7 +77,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
       };
 
       if (item) {
-        await api.put(`/inventory/${inventoryId}/items/${item.id}`, payload);
+        await api.put(`/inventory/${inventoryId}/items/${item.Id}`, payload);
       } else {
         await api.post(`/inventory/${inventoryId}/items`, payload);
       }

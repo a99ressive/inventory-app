@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Typography,
@@ -29,9 +29,9 @@ const InventoryDetail: React.FC = () => {
   const [error, setError] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Item | null>(null);
+  const [editingItem, setEditingItem] = useState<Item | undefined>(undefined);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
@@ -47,11 +47,11 @@ const InventoryDetail: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     loadData();
-  }, [id]);
+  }, [loadData]);
 
   const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.checked) {
@@ -82,7 +82,7 @@ const InventoryDetail: React.FC = () => {
   };
 
   const handleAddItem = () => {
-    setEditingItem(null);
+    setEditingItem(undefined);
     setModalOpen(true);
   };
 
