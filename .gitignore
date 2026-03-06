@@ -8,6 +8,7 @@ obj/
 
 # Logs
 *.log
+doc/
 
 # OS
 .DS_Store
