@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 using server.Data;
 
 #nullable disable
@@ -219,6 +220,35 @@ namespace server.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
+            modelBuilder.Entity("server.Models.Comment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("InventoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Comments");
+                });
+
             modelBuilder.Entity("server.Models.Inventory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -252,6 +282,13 @@ namespace server.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea");
 
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasAnnotation("Npgsql:TsVectorConfig", "english")
+                        .HasAnnotation("Npgsql:TsVectorProperties", new[] { "Title", "Description" });
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");
@@ -261,6 +298,10 @@ namespace server.Migrations
                     b.HasIndex("InventoryTypeId");
 
                     b.HasIndex("OwnerId");
+
+                    b.HasIndex("SearchVector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
 
                     b.ToTable("Inventories");
                 });
@@ -430,6 +471,29 @@ namespace server.Migrations
                     b.ToTable("Items");
                 });
 
+            modelBuilder.Entity("server.Models.Like", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("UserId", "ItemId")
+                        .IsUnique();
+
+                    b.ToTable("Likes");
+                });
+
             modelBuilder.Entity("server.Models.TestEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -496,6 +560,25 @@ namespace server.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("server.Models.Comment", b =>
+                {
+                    b.HasOne("server.Models.Inventory", "Inventory")
+                        .WithMany()
+                        .HasForeignKey("InventoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("server.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Inventory");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("server.Models.Inventory", b =>
                 {
                     b.HasOne("server.Models.InventoryType", "InventoryType")
@@ -551,6 +634,25 @@ namespace server.Migrations
                     b.Navigation("CreatedBy");
 
                     b.Navigation("Inventory");
+                });
+
+            modelBuilder.Entity("server.Models.Like", b =>
+                {
+                    b.HasOne("server.Models.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("server.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+
+                    b.Navigation("User");
                 });
 #pragma warning restore 612, 618
         }

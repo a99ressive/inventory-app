@@ -19,8 +19,11 @@ public class ItemController : ControllerBase
         _itemService = itemService;
     }
 
+    private string? CurrentUserIdOrNull =>
+        User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
     private string CurrentUserId =>
-        User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+        CurrentUserIdOrNull ?? throw new UnauthorizedAccessException();
 
     // CREATE
     [HttpPost]
@@ -50,7 +53,7 @@ public class ItemController : ControllerBase
     {
         var items = await _itemService.GetAllAsync(
             inventoryId,
-            CurrentUserId,
+            CurrentUserIdOrNull,
             User
         );
 

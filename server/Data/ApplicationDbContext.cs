@@ -18,6 +18,8 @@ public class ApplicationDbContext
     public DbSet<Item> Items => Set<Item>();
     public DbSet<InventoryUserAccess> InventoryUserAccesses => Set<InventoryUserAccess>();
     public DbSet<InventoryType> InventoryTypes => Set<InventoryType>();
+    public DbSet<Comment> Comments => Set<Comment>();
+    public DbSet<Like> Likes => Set<Like>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -65,6 +67,38 @@ public class ApplicationDbContext
             new InventoryType { Id = 10, NameRu = "Косметика и уход", NameEn = "Cosmetics", Prefix = "COSM" },
             new InventoryType { Id = 11, NameRu = "Строительные материалы", NameEn = "Construction", Prefix = "CONS" },
             new InventoryType { Id = 12, NameRu = "Прочее", NameEn = "Miscellaneous", Prefix = "MISC" }
-);
+        );
+
+        builder.Entity<Comment>()
+            .HasOne(c => c.Inventory)
+            .WithMany()
+            .HasForeignKey(c => c.InventoryId);
+
+        builder.Entity<Comment>()
+            .HasOne(c => c.User)
+            .WithMany()
+            .HasForeignKey(c => c.UserId);
+
+        builder.Entity<Like>()
+            .HasOne(l => l.Item)
+            .WithMany()
+            .HasForeignKey(l => l.ItemId);
+
+        builder.Entity<Like>()
+            .HasOne(l => l.User)
+            .WithMany()
+            .HasForeignKey(l => l.UserId);
+
+        builder.Entity<Like>()
+            .HasIndex(l => new { l.UserId, l.ItemId })
+            .IsUnique();
+
+        builder.Entity<Inventory>()
+            .HasGeneratedTsVectorColumn(
+                i => i.SearchVector,
+                "english",
+                i => new { i.Title, i.Description })
+            .HasIndex(i => i.SearchVector)
+            .HasMethod("GIN");
     }
 }

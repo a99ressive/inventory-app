@@ -1,6 +1,7 @@
 ﻿using server.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using NpgsqlTypes;
 
 namespace server.Models;
 
@@ -29,6 +30,8 @@ public class Inventory
     public int LastSequence { get; set; } = 0;
 
     public JsonDocument? CustomFields { get; set; }
+
+    public NpgsqlTsVector SearchVector { get; set; } = null!;
 
     [Timestamp]
     public byte[]? RowVersion { get; set; }

@@ -31,14 +31,19 @@ const InventoryDetail: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Item | undefined>(undefined);
 
+  const canWrite = inventory?.CanWrite ?? false;
+
   const loadData = useCallback(async () => {
     if (!id) return;
+
     try {
       setLoading(true);
+
       const [inventoryRes, itemsRes] = await Promise.all([
         api.get(`/Inventory/${id}`),
-        api.get(`/inventory/${id}/items`),
+        api.get(`/inventory/${id}/items`)
       ]);
+
       setInventory(inventoryRes.data);
       setItems(itemsRes.data);
       setError('');
@@ -61,19 +66,27 @@ const InventoryDetail: React.FC = () => {
     }
   };
 
-  const handleSelectOne = (id: string) => {
+  const handleSelectOne = (itemId: string) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(itemId)
+        ? prev.filter((i) => i !== itemId)
+        : [...prev, itemId]
     );
   };
 
   const handleDeleteSelected = async () => {
+    if (!canWrite) return;
     if (selectedIds.length === 0) return;
+
     if (!window.confirm(`Delete ${selectedIds.length} item(s)?`)) return;
+
     try {
       await Promise.all(
-        selectedIds.map((itemId) => api.delete(`/inventory/${id}/items/${itemId}`))
+        selectedIds.map((itemId) =>
+          api.delete(`/inventory/${id}/items/${itemId}`)
+        )
       );
+
       setSelectedIds([]);
       loadData();
     } catch {
@@ -82,11 +95,13 @@ const InventoryDetail: React.FC = () => {
   };
 
   const handleAddItem = () => {
+    if (!canWrite) return;
     setEditingItem(undefined);
     setModalOpen(true);
   };
 
-  const handleEditItem = (item: Item) => {
+  const handleRowClick = (item: Item) => {
+    if (!canWrite) return;
     setEditingItem(item);
     setModalOpen(true);
   };
@@ -106,79 +121,112 @@ const InventoryDetail: React.FC = () => {
           <Typography variant="h4" gutterBottom>
             {inventory.Title}
           </Typography>
+
           {inventory.Description && (
             <Typography variant="body1" color="text.secondary" paragraph>
               {inventory.Description}
             </Typography>
           )}
+
           <Typography variant="caption" display="block" color="text.secondary">
-            Public: {inventory.IsPublic ? 'Yes' : 'No'} | Type ID: {inventory.InventoryTypeId} | Last Sequence: {inventory.LastSequence}
+            Public: {inventory.IsPublic ? 'Yes' : 'No'} | Type ID:{' '}
+            {inventory.InventoryTypeId} | Last Sequence:{' '}
+            {inventory.LastSequence}
           </Typography>
         </CardContent>
       </Card>
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h5">Items</Typography>
-        <Box>
-          <Button variant="contained" onClick={handleAddItem} sx={{ mr: 1 }}>
-            Add Item
-          </Button>
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={handleDeleteSelected}
-            disabled={selectedIds.length === 0}
-          >
-            Delete Selected ({selectedIds.length})
-          </Button>
-        </Box>
+
+        {canWrite && (
+          <Box>
+            <Button
+              variant="contained"
+              onClick={handleAddItem}
+              sx={{ mr: 1 }}
+            >
+              Add Item
+            </Button>
+
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.length === 0}
+            >
+              Delete Selected ({selectedIds.length})
+            </Button>
+          </Box>
+        )}
       </Box>
 
       <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  indeterminate={
-                    selectedIds.length > 0 && selectedIds.length < items.length
-                  }
-                  checked={items.length > 0 && selectedIds.length === items.length}
-                  onChange={handleSelectAll}
-                />
-              </TableCell>
+              {canWrite && (
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    indeterminate={
+                      selectedIds.length > 0 &&
+                      selectedIds.length < items.length
+                    }
+                    checked={
+                      items.length > 0 &&
+                      selectedIds.length === items.length
+                    }
+                    onChange={handleSelectAll}
+                  />
+                </TableCell>
+              )}
+
               <TableCell>Custom ID</TableCell>
               <TableCell>Data</TableCell>
               <TableCell>Created By</TableCell>
               <TableCell>Created At</TableCell>
-              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
+
           <TableBody>
             {items.map((item) => (
-              <TableRow key={item.Id}>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    checked={selectedIds.includes(item.Id)}
-                    onChange={() => handleSelectOne(item.Id)}
-                  />
-                </TableCell>
+              <TableRow
+                key={item.Id}
+                hover={canWrite}
+                onClick={() => handleRowClick(item)}
+                sx={{ cursor: canWrite ? 'pointer' : 'default' }}
+              >
+                {canWrite && (
+                  <TableCell
+                    padding="checkbox"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={selectedIds.includes(item.Id)}
+                      onChange={() => handleSelectOne(item.Id)}
+                    />
+                  </TableCell>
+                )}
+
                 <TableCell>{item.CustomId}</TableCell>
+
                 <TableCell>
-                  <pre style={{ margin: 0 }}>{JSON.stringify(item.Data, null, 2)}</pre>
+                  <pre style={{ margin: 0 }}>
+                    {JSON.stringify(item.Data, null, 2)}
+                  </pre>
                 </TableCell>
+
                 <TableCell>{item.CreatedById}</TableCell>
-                <TableCell>{new Date(item.CreatedAt).toLocaleString()}</TableCell>
+
                 <TableCell>
-                  <Button size="small" onClick={() => handleEditItem(item)}>
-                    Edit
-                  </Button>
+                  {new Date(item.CreatedAt).toLocaleString()}
                 </TableCell>
               </TableRow>
             ))}
+
             {items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} align="center">
+                <TableCell colSpan={canWrite ? 5 : 4} align="center">
                   No items yet
                 </TableCell>
               </TableRow>

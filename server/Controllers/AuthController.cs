@@ -14,11 +14,15 @@ public class AuthController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IConfiguration _configuration;
+    private readonly SignInManager<ApplicationUser> _signInManager;
 
-    public AuthController(UserManager<ApplicationUser> userManager,
-                          IConfiguration configuration)
+    public AuthController(
+    UserManager<ApplicationUser> userManager,
+    SignInManager<ApplicationUser> signInManager,
+    IConfiguration configuration)
     {
         _userManager = userManager;
+        _signInManager = signInManager;
         _configuration = configuration;
     }
 
@@ -52,6 +56,81 @@ public class AuthController : ControllerBase
 
         var token = GenerateJwtToken(user);
         return Ok(new { token });
+    }
+
+    [HttpGet("external/callback")]
+    public async Task<IActionResult> ExternalCallback()
+    {
+        var info = await _signInManager.GetExternalLoginInfoAsync();
+
+        if (info == null)
+            return BadRequest("External login error");
+
+        var signInResult = await _signInManager.ExternalLoginSignInAsync(
+            info.LoginProvider,
+            info.ProviderKey,
+            false
+        );
+
+        ApplicationUser user;
+
+        if (signInResult.Succeeded)
+        {
+            user = await _userManager.FindByLoginAsync(
+                info.LoginProvider,
+                info.ProviderKey
+            );
+        }
+        else
+        {
+            var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+
+            if (email == null)
+                return BadRequest("Email not received");
+
+            user = await _userManager.FindByEmailAsync(email);
+
+            if (user == null)
+            {
+                user = new ApplicationUser
+                {
+                    UserName = email,
+                    Email = email
+                };
+
+                await _userManager.CreateAsync(user);
+            }
+
+            await _userManager.AddLoginAsync(user, info);
+        }
+
+        var token = GenerateJwtToken(user);
+
+        return Ok(new { token });
+    }
+
+    [HttpGet("external/google")]
+    public IActionResult GoogleLogin()
+    {
+        var redirectUrl = Url.Action(nameof(ExternalCallback));
+        var properties = _signInManager.ConfigureExternalAuthenticationProperties(
+            "Google",
+            redirectUrl!
+        );
+
+        return Challenge(properties, "Google");
+    }
+
+    [HttpGet("external/facebook")]
+    public IActionResult FacebookLogin()
+    {
+        var redirectUrl = Url.Action(nameof(ExternalCallback));
+        var properties = _signInManager.ConfigureExternalAuthenticationProperties(
+            "Facebook",
+            redirectUrl!
+        );
+
+        return Challenge(properties, "Facebook");
     }
 
     private string GenerateJwtToken(ApplicationUser user)

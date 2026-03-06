@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -6,6 +6,7 @@ import PrivateRoute from './components/PrivateRoute';
 import MyInventories from './pages/MyInventories';
 import CreateInventory from './pages/CreateInventory';
 import InventoryDetail from './pages/InventoryDetail';
+import Home from './pages/Home';
 import { Box, Container } from '@mui/material';
 
 function App() {
@@ -14,9 +15,11 @@ function App() {
       <NavBar />
       <Container sx={{ mt: 4 }}>
         <Routes>
+          <Route path="/" element={<Home />} />
+
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<Navigate to="/login" />} />
+
           <Route
             path="/inventories"
             element={
@@ -25,6 +28,7 @@ function App() {
               </PrivateRoute>
             }
           />
+
           <Route
             path="/inventories/new"
             element={
@@ -33,13 +37,11 @@ function App() {
               </PrivateRoute>
             }
           />
+
+          {/* ПУБЛИЧНЫЙ ROUTE */}
           <Route
             path="/inventories/:id"
-            element={
-              <PrivateRoute>
-                <InventoryDetail />
-              </PrivateRoute>
-            }
+            element={<InventoryDetail />}
           />
         </Routes>
       </Container>

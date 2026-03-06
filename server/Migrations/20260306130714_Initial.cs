@@ -2,6 +2,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -10,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace server.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -200,6 +201,9 @@ namespace server.Migrations
                     CustomIdConfig = table.Column<JsonDocument>(type: "jsonb", nullable: true),
                     LastSequence = table.Column<int>(type: "integer", nullable: false),
                     CustomFields = table.Column<JsonDocument>(type: "jsonb", nullable: true),
+                    SearchVector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: false)
+                        .Annotation("Npgsql:TsVectorConfig", "english")
+                        .Annotation("Npgsql:TsVectorProperties", new[] { "Title", "Description" }),
                     RowVersion = table.Column<byte[]>(type: "bytea", rowVersion: true, nullable: true)
                 },
                 constraints: table =>
@@ -215,6 +219,33 @@ namespace server.Migrations
                         name: "FK_Inventories_InventoryTypes_InventoryTypeId",
                         column: x => x.InventoryTypeId,
                         principalTable: "InventoryTypes",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Comments",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    InventoryId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false),
+                    Content = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Comments", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Comments_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Comments_Inventories_InventoryId",
+                        column: x => x.InventoryId,
+                        principalTable: "Inventories",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -268,6 +299,31 @@ namespace server.Migrations
                         name: "FK_Items_Inventories_InventoryId",
                         column: x => x.InventoryId,
                         principalTable: "Inventories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Likes",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    ItemId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Likes", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Likes_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Likes_Items_ItemId",
+                        column: x => x.ItemId,
+                        principalTable: "Items",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -329,6 +385,16 @@ namespace server.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Comments_InventoryId",
+                table: "Comments",
+                column: "InventoryId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Comments_UserId",
+                table: "Comments",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Inventories_InventoryTypeId",
                 table: "Inventories",
                 column: "InventoryTypeId");
@@ -337,6 +403,12 @@ namespace server.Migrations
                 name: "IX_Inventories_OwnerId",
                 table: "Inventories",
                 column: "OwnerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Inventories_SearchVector",
+                table: "Inventories",
+                column: "SearchVector")
+                .Annotation("Npgsql:IndexMethod", "GIN");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryUserAccesses_UserId",
@@ -352,6 +424,17 @@ namespace server.Migrations
                 name: "IX_Items_InventoryId_CustomId",
                 table: "Items",
                 columns: new[] { "InventoryId", "CustomId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Likes_ItemId",
+                table: "Likes",
+                column: "ItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Likes_UserId_ItemId",
+                table: "Likes",
+                columns: new[] { "UserId", "ItemId" },
                 unique: true);
         }
 
@@ -374,16 +457,22 @@ namespace server.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
+                name: "Comments");
+
+            migrationBuilder.DropTable(
                 name: "InventoryUserAccesses");
 
             migrationBuilder.DropTable(
-                name: "Items");
+                name: "Likes");
 
             migrationBuilder.DropTable(
                 name: "TestEntities");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
+
+            migrationBuilder.DropTable(
+                name: "Items");
 
             migrationBuilder.DropTable(
                 name: "Inventories");
