@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace server.Controllers;
 
@@ -7,6 +8,7 @@ namespace server.Controllers;
 public class HealthController : ControllerBase
 {
     [HttpGet]
+    [Authorize]
     public IActionResult Get()
     {
         return Ok(new { status = "OK" });
