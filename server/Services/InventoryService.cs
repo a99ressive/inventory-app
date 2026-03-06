@@ -48,6 +48,15 @@ public class InventoryService : IInventoryService
             CustomFields = null // пока без полей
         };
 
+        inventory.Tags = NormalizeTags(dto.Tags)
+            .Select(tag => new InventoryTag
+            {
+                Id = Guid.NewGuid(),
+                InventoryId = inventory.Id,
+                Tag = tag
+            })
+            .ToList();
+
         _context.Inventories.Add(inventory);
         await _context.SaveChangesAsync();
 
@@ -68,6 +77,19 @@ public class InventoryService : IInventoryService
         inventory.Description = dto.Description;
         inventory.InventoryTypeId = dto.InventoryTypeId;
         inventory.IsPublic = dto.IsPublic;
+
+        await _context.Entry(inventory).Collection(i => i.Tags).LoadAsync();
+        inventory.Tags.Clear();
+
+        foreach (var tag in NormalizeTags(dto.Tags))
+        {
+            inventory.Tags.Add(new InventoryTag
+            {
+                Id = Guid.NewGuid(),
+                InventoryId = inventory.Id,
+                Tag = tag
+            });
+        }
 
         // Сохраняем с проверкой concurrency (если передаётся RowVersion, нужно использовать UpdateInventoryDto)
         try
@@ -247,5 +269,18 @@ public class InventoryService : IInventoryService
 
         if (fields.Count(f => f.Type == "link") > 3)
             throw new Exception("Max 3 link fields");
+    }
+
+    private static List<string> NormalizeTags(IEnumerable<string>? tags)
+    {
+        if (tags == null) return new List<string>();
+
+        return tags
+            .Select(t => (t ?? string.Empty).Trim())
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t.Length > 100 ? t[..100] : t)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(50)
+            .ToList();
     }
 }

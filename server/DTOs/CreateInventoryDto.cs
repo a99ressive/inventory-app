@@ -9,4 +9,6 @@ public class CreateInventoryDto
     public int InventoryTypeId { get; set; }
 
     public bool IsPublic { get; set; }
+
+    public List<string> Tags { get; set; } = new();
 }

@@ -7,6 +7,7 @@ export interface Inventory {
   InventoryTypeId: number;
   LastSequence: number;
   RowVersion?: string | null;
+  CanWrite?: boolean;
 }
 
 export interface Item {
@@ -17,6 +18,7 @@ export interface Item {
   CreatedById: string;
   CreatedAt: string; // ISO date string
   RowVersion?: string | null;
+  CanWrite?: boolean;
 }
 
 export interface User {

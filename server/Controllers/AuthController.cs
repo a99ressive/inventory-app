@@ -17,9 +17,9 @@ public class AuthController : ControllerBase
     private readonly SignInManager<ApplicationUser> _signInManager;
 
     public AuthController(
-    UserManager<ApplicationUser> userManager,
-    SignInManager<ApplicationUser> signInManager,
-    IConfiguration configuration)
+        UserManager<ApplicationUser> userManager,
+        SignInManager<ApplicationUser> signInManager,
+        IConfiguration configuration)
     {
         _userManager = userManager;
         _signInManager = signInManager;
@@ -40,6 +40,13 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return BadRequest(result.Errors);
 
+        if (!await _userManager.IsInRoleAsync(user, "User"))
+        {
+            var roleResult = await _userManager.AddToRoleAsync(user, "User");
+            if (!roleResult.Succeeded)
+                return BadRequest(roleResult.Errors);
+        }
+
         return Ok();
     }
 
@@ -50,11 +57,14 @@ public class AuthController : ControllerBase
         if (user == null)
             return Unauthorized();
 
+        if (user.IsBlocked)
+            return Forbid("User is blocked.");
+
         var valid = await _userManager.CheckPasswordAsync(user, password);
         if (!valid)
             return Unauthorized();
 
-        var token = GenerateJwtToken(user);
+        var token = await GenerateJwtTokenAsync(user);
         return Ok(new { token });
     }
 
@@ -76,19 +86,15 @@ public class AuthController : ControllerBase
 
         if (signInResult.Succeeded)
         {
-            user = await _userManager.FindByLoginAsync(
-                info.LoginProvider,
-                info.ProviderKey
-            );
+            user = (await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey))!;
         }
         else
         {
             var email = info.Principal.FindFirstValue(ClaimTypes.Email);
-
             if (email == null)
                 return BadRequest("Email not received");
 
-            user = await _userManager.FindByEmailAsync(email);
+            user = await _userManager.FindByEmailAsync(email)!;
 
             if (user == null)
             {
@@ -98,13 +104,22 @@ public class AuthController : ControllerBase
                     Email = email
                 };
 
-                await _userManager.CreateAsync(user);
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                    return BadRequest(createResult.Errors);
+
+                await _userManager.AddToRoleAsync(user, "User");
             }
 
-            await _userManager.AddLoginAsync(user, info);
+            var addLoginResult = await _userManager.AddLoginAsync(user, info);
+            if (!addLoginResult.Succeeded)
+                return BadRequest(addLoginResult.Errors);
         }
 
-        var token = GenerateJwtToken(user);
+        if (user.IsBlocked)
+            return Forbid("User is blocked.");
+
+        var token = await GenerateJwtTokenAsync(user);
 
         return Ok(new { token });
     }
@@ -113,11 +128,7 @@ public class AuthController : ControllerBase
     public IActionResult GoogleLogin()
     {
         var redirectUrl = Url.Action(nameof(ExternalCallback));
-        var properties = _signInManager.ConfigureExternalAuthenticationProperties(
-            "Google",
-            redirectUrl!
-        );
-
+        var properties = _signInManager.ConfigureExternalAuthenticationProperties("Google", redirectUrl!);
         return Challenge(properties, "Google");
     }
 
@@ -125,28 +136,28 @@ public class AuthController : ControllerBase
     public IActionResult FacebookLogin()
     {
         var redirectUrl = Url.Action(nameof(ExternalCallback));
-        var properties = _signInManager.ConfigureExternalAuthenticationProperties(
-            "Facebook",
-            redirectUrl!
-        );
-
+        var properties = _signInManager.ConfigureExternalAuthenticationProperties("Facebook", redirectUrl!);
         return Challenge(properties, "Facebook");
     }
 
-    private string GenerateJwtToken(ApplicationUser user)
+    private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
     {
         var jwtSettings = _configuration.GetSection("Jwt");
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtSettings["Key"]!));
-
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var roles = await _userManager.GetRolesAsync(user);
+
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id),
             new Claim(JwtRegisteredClaimNames.Email, user.Email!),
-            new Claim(ClaimTypes.NameIdentifier, user.Id)
+            new Claim(ClaimTypes.NameIdentifier, user.Id),
+            new Claim(ClaimTypes.Name, user.UserName ?? user.Email ?? user.Id)
         };
+
+        foreach (var role in roles)
+            claims.Add(new Claim(ClaimTypes.Role, role));
 
         var token = new JwtSecurityToken(
             issuer: jwtSettings["Issuer"],

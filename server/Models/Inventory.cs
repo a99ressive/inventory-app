@@ -1,5 +1,4 @@
-﻿using server.Models;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using NpgsqlTypes;
 
@@ -23,15 +22,15 @@ public class Inventory
 
     public InventoryType InventoryType { get; set; } = null!;
 
-    // 🔥 NEW: Custom ID configuration
     public JsonDocument? CustomIdConfig { get; set; }
 
-    // 🔥 NEW: sequence counter
     public int LastSequence { get; set; } = 0;
 
     public JsonDocument? CustomFields { get; set; }
 
     public NpgsqlTsVector SearchVector { get; set; } = null!;
+
+    public List<InventoryTag> Tags { get; set; } = new();
 
     [Timestamp]
     public byte[]? RowVersion { get; set; }

@@ -4,14 +4,9 @@ using server.Models;
 
 namespace server.Data;
 
-public class ApplicationDbContext
-    : IdentityDbContext<ApplicationUser>
+public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
-    public ApplicationDbContext(
-        DbContextOptions<ApplicationDbContext> options)
-        : base(options)
-    {
-    }
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
     public DbSet<TestEntity> TestEntities => Set<TestEntity>();
     public DbSet<Inventory> Inventories => Set<Inventory>();
@@ -20,6 +15,7 @@ public class ApplicationDbContext
     public DbSet<InventoryType> InventoryTypes => Set<InventoryType>();
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Like> Likes => Set<Like>();
+    public DbSet<InventoryTag> InventoryTags => Set<InventoryTag>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -53,6 +49,20 @@ public class ApplicationDbContext
         builder.Entity<Inventory>()
             .Property(i => i.CustomIdConfig)
             .HasColumnType("jsonb");
+
+        builder.Entity<InventoryTag>()
+            .HasIndex(x => new { x.InventoryId, x.Tag })
+            .IsUnique();
+
+        builder.Entity<InventoryTag>()
+            .Property(x => x.Tag)
+            .HasMaxLength(100);
+
+        builder.Entity<InventoryTag>()
+            .HasOne(x => x.Inventory)
+            .WithMany(x => x.Tags)
+            .HasForeignKey(x => x.InventoryId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<InventoryType>().HasData(
             new InventoryType { Id = 1, NameRu = "Электроника", NameEn = "Electronics", Prefix = "ELEC" },
