@@ -235,7 +235,11 @@ public class InventoryService : IInventoryService
         }
     }
 
-    public async Task<List<string>> GetAccessListAsync(Guid inventoryId, string userId, ClaimsPrincipal user)
+    public async Task<List<UserSearchDto>> GetAccessListAsync(
+    Guid inventoryId,
+    string userId,
+    ClaimsPrincipal user,
+    string sortBy = "name")
     {
         var inventory = await _context.Inventories
             .FirstOrDefaultAsync(i => i.Id == inventoryId)
@@ -244,10 +248,26 @@ public class InventoryService : IInventoryService
         if (!HasOwnerRights(inventory, userId, user))
             throw new UnauthorizedAccessException();
 
-        return await _context.InventoryUserAccesses
+        var query = _context.InventoryUserAccesses
             .Where(x => x.InventoryId == inventoryId)
-            .Select(x => x.UserId)
-            .ToListAsync();
+            .Join(
+                _context.Users,
+                access => access.UserId,
+                u => u.Id,
+                (access, u) => new UserSearchDto
+                {
+                    Id = u.Id,
+                    Email = u.Email ?? string.Empty,
+                    Name = u.UserName ?? string.Empty
+                });
+
+        query = sortBy.ToLower() switch
+        {
+            "email" => query.OrderBy(x => x.Email),
+            _ => query.OrderBy(x => x.Name)
+        };
+
+        return await query.ToListAsync();
     }
 
     private async Task<bool> HasWriteAccess(

@@ -56,7 +56,8 @@ namespace server.Services
                 CustomIdElementType.DateTime =>
                     @".+?",
 
-                _ => throw new Exception("Unknown element type")
+                _ =>
+                    throw new Exception("Unknown element type")
             };
         }
     }

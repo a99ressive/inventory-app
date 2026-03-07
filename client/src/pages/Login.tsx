@@ -11,11 +11,12 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await api.post('/Auth/login', null, {
-        params: { email, password }
-      });
-      localStorage.setItem('token', res.data.token);
-      navigate('/inventories'); // пока не создано, но позже
+      const res = await api.post('/Auth/login', { email, password });
+      const token = res.data?.token as string | undefined;
+      if (!token) throw new Error('Token is missing in response');
+
+      localStorage.setItem('token', token);
+      navigate('/inventories');
     } catch {
       alert('Login failed');
     }

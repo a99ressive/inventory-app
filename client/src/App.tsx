@@ -25,7 +25,7 @@ function App() {
           <Route
             path="/admin"
             element={
-              <PrivateRoute>
+              <PrivateRoute requireAdmin>
                 <AdminPage />
               </PrivateRoute>
             }
@@ -58,11 +58,7 @@ function App() {
             }
           />
 
-          {/* ПУБЛИЧНЫЙ ROUTE */}
-          <Route
-            path="/inventories/:id"
-            element={<InventoryDetail />}
-          />
+          <Route path="/inventories/:id" element={<InventoryDetail />} />
         </Routes>
       </Container>
     </Box>

@@ -113,12 +113,15 @@ public class InventoryController : ControllerBase
     }
 
     [HttpGet("{inventoryId}/access")]
-    public async Task<IActionResult> GetAccess(Guid inventoryId)
+    public async Task<IActionResult> GetAccess(
+    Guid inventoryId,
+    [FromQuery] string sortBy = "name")
     {
         var list = await _service.GetAccessListAsync(
             inventoryId,
             CurrentUserId,
-            User
+            User,
+            sortBy
         );
 
         return Ok(list);

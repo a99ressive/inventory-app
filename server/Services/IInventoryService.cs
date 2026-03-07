@@ -20,7 +20,11 @@ public interface IInventoryService
 
     Task RemoveAccessAsync(Guid inventoryId, string targetUserId, string userId, ClaimsPrincipal user);
 
-    Task<List<string>> GetAccessListAsync(Guid inventoryId, string userId, ClaimsPrincipal user);
+    Task<List<UserSearchDto>> GetAccessListAsync(
+        Guid inventoryId,
+        string userId,
+        ClaimsPrincipal user,
+        string sortBy = "name");
 
     Task UpdateFieldsAsync(Guid id, UpdateFieldsDto dto, string userId, ClaimsPrincipal user);
 

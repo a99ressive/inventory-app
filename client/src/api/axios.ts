@@ -1,13 +1,15 @@
 import axios from 'axios';
 
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7222/api';
+const baseURL = rawBaseUrl.endsWith('/') ? rawBaseUrl.slice(0, -1) : rawBaseUrl;
+
 const api = axios.create({
-  baseURL: 'https://localhost:7222/api', // замени порт на свой, если отличается
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Добавляем токен к каждому запросу, если он есть
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
