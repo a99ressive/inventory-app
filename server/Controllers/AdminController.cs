@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using server.Data;
 using server.DTOs;
 using server.Models;
 
@@ -13,10 +14,12 @@ namespace server.Controllers;
 public class AdminController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ApplicationDbContext _context;
 
-    public AdminController(UserManager<ApplicationUser> userManager)
+    public AdminController(UserManager<ApplicationUser> userManager, ApplicationDbContext context)
     {
         _userManager = userManager;
+        _context = context;
     }
 
     [HttpGet("users")]
@@ -44,21 +47,25 @@ public class AdminController : ControllerBase
             .Take(pageSize)
             .ToListAsync();
 
-        var result = new List<AdminUserDto>(users.Count);
+        var userIds = users.Select(u => u.Id).ToList();
 
-        foreach (var u in users)
+        var adminRoleUserIds = await (
+            from userRole in _context.UserRoles.AsNoTracking()
+            join role in _context.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+            where role.Name == "Admin" && userIds.Contains(userRole.UserId)
+            select userRole.UserId
+        ).Distinct().ToListAsync();
+
+        var adminUserIdSet = adminRoleUserIds.ToHashSet();
+
+        var result = users.Select(u => new AdminUserDto
         {
-            var roles = await _userManager.GetRolesAsync(u);
-
-            result.Add(new AdminUserDto
-            {
-                Id = u.Id,
-                Email = u.Email ?? string.Empty,
-                UserName = u.UserName ?? string.Empty,
-                IsBlocked = u.IsBlocked,
-                IsAdmin = roles.Contains("Admin")
-            });
-        }
+            Id = u.Id,
+            Email = u.Email ?? string.Empty,
+            UserName = u.UserName ?? string.Empty,
+            IsBlocked = u.IsBlocked,
+            IsAdmin = adminUserIdSet.Contains(u.Id)
+        }).ToList();
 
         return Ok(result);
     }
