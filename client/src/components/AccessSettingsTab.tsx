@@ -30,29 +30,35 @@ type SortBy = 'name' | 'email';
 
 interface Props {
   inventoryId: string;
+  ownerId: string;
 }
 
-const AccessSettingsTab: React.FC<Props> = ({ inventoryId }) => {
+const AccessSettingsTab: React.FC<Props> = ({ inventoryId, ownerId }) => {
   const [accessUsers, setAccessUsers] = React.useState<AccessUser[]>([]);
   const [selected, setSelected] = React.useState<string[]>([]);
   const [query, setQuery] = React.useState('');
   const [suggestions, setSuggestions] = React.useState<AccessUser[]>([]);
   const [sortBy, setSortBy] = React.useState<SortBy>('name');
   const [error, setError] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
 
   const loadAccess = React.useCallback(async () => {
     try {
+      setLoading(true);
       const res = await api.get(`/Inventory/${inventoryId}/access?sortBy=${sortBy}`);
-      setAccessUsers(res.data ?? []);
-      setSelected([]);
+      const rows = ((res.data ?? []) as AccessUser[]).filter((user) => user.Id !== ownerId);
+      setAccessUsers(rows);
+      setSelected((prev) => prev.filter((id) => rows.some((user) => user.Id === id)));
       setError('');
     } catch {
       setError('Failed to load access list');
+    } finally {
+      setLoading(false);
     }
-  }, [inventoryId, sortBy]);
+  }, [inventoryId, ownerId, sortBy]);
 
   React.useEffect(() => {
-    loadAccess();
+    void loadAccess();
   }, [loadAccess]);
 
   React.useEffect(() => {
@@ -62,19 +68,25 @@ const AccessSettingsTab: React.FC<Props> = ({ inventoryId }) => {
       return;
     }
 
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const res = await api.get(
           `/Users/search?query=${encodeURIComponent(q)}&sort=${sortBy}&limit=10`
         );
-        setSuggestions(res.data ?? []);
-      } catch {
-        // ignore autocomplete errors
-      }
-    }, 250);
 
-    return () => clearTimeout(t);
-  }, [query, sortBy]);
+        const existingIds = new Set(accessUsers.map((user) => user.Id));
+        const nextSuggestions = ((res.data ?? []) as AccessUser[]).filter(
+          (user) => user.Id !== ownerId && !existingIds.has(user.Id)
+        );
+
+        setSuggestions(nextSuggestions);
+      } catch {
+        // Ignore autocomplete errors to avoid blocking the page.
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query, sortBy, accessUsers, ownerId]);
 
   const addUser = async (userId: string) => {
     try {
@@ -92,7 +104,7 @@ const AccessSettingsTab: React.FC<Props> = ({ inventoryId }) => {
 
     try {
       await Promise.all(
-        selected.map((id) => api.delete(`/Inventory/${inventoryId}/access/${id}`))
+        selected.map((userId) => api.delete(`/Inventory/${inventoryId}/access/${userId}`))
       );
       await loadAccess();
     } catch {
@@ -113,7 +125,11 @@ const AccessSettingsTab: React.FC<Props> = ({ inventoryId }) => {
         Access settings
       </Typography>
 
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ mb: 2 }}>
         <FormControl size="small" sx={{ minWidth: 180 }}>
@@ -121,7 +137,7 @@ const AccessSettingsTab: React.FC<Props> = ({ inventoryId }) => {
           <Select
             label="Sort mode"
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortBy)}
+            onChange={(event) => setSortBy(event.target.value as SortBy)}
           >
             <MenuItem value="name">By name</MenuItem>
             <MenuItem value="email">By email</MenuItem>
@@ -132,7 +148,7 @@ const AccessSettingsTab: React.FC<Props> = ({ inventoryId }) => {
           variant="outlined"
           color="error"
           disabled={selected.length === 0}
-          onClick={removeSelected}
+          onClick={() => void removeSelected()}
         >
           Remove selected ({selected.length})
         </Button>
@@ -147,14 +163,14 @@ const AccessSettingsTab: React.FC<Props> = ({ inventoryId }) => {
           size="small"
           label="Type username or email"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(event) => setQuery(event.target.value)}
         />
 
         {suggestions.length > 0 && (
           <Paper variant="outlined" sx={{ mt: 1, maxHeight: 220, overflowY: 'auto' }}>
-            {suggestions.map((u) => (
+            {suggestions.map((user) => (
               <Box
-                key={u.Id}
+                key={user.Id}
                 sx={{
                   px: 1.5,
                   py: 1,
@@ -163,10 +179,12 @@ const AccessSettingsTab: React.FC<Props> = ({ inventoryId }) => {
                   borderBottom: '1px solid',
                   borderColor: 'divider',
                 }}
-                onClick={() => addUser(u.Id)}
+                onClick={() => void addUser(user.Id)}
               >
-                <Typography variant="body2">{u.Name || '—'}</Typography>
-                <Typography variant="caption" color="text.secondary">{u.Email}</Typography>
+                <Typography variant="body2">{user.Name || '-'}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {user.Email}
+                </Typography>
               </Box>
             ))}
           </Paper>
@@ -181,8 +199,8 @@ const AccessSettingsTab: React.FC<Props> = ({ inventoryId }) => {
                 <Checkbox
                   checked={allChecked}
                   indeterminate={indeterminate}
-                  onChange={(e) =>
-                    setSelected(e.target.checked ? accessUsers.map((u) => u.Id) : [])
+                  onChange={(event) =>
+                    setSelected(event.target.checked ? accessUsers.map((user) => user.Id) : [])
                   }
                 />
               </TableCell>
@@ -192,23 +210,31 @@ const AccessSettingsTab: React.FC<Props> = ({ inventoryId }) => {
           </TableHead>
 
           <TableBody>
-            {accessUsers.map((u) => (
-              <TableRow key={u.Id}>
+            {accessUsers.map((user) => (
+              <TableRow key={user.Id}>
                 <TableCell padding="checkbox">
                   <Checkbox
-                    checked={selected.includes(u.Id)}
-                    onChange={() => toggleOne(u.Id)}
+                    checked={selected.includes(user.Id)}
+                    onChange={() => toggleOne(user.Id)}
                   />
                 </TableCell>
-                <TableCell>{u.Name || '—'}</TableCell>
-                <TableCell>{u.Email}</TableCell>
+                <TableCell>{user.Name || '-'}</TableCell>
+                <TableCell>{user.Email}</TableCell>
               </TableRow>
             ))}
 
-            {accessUsers.length === 0 && (
+            {accessUsers.length === 0 && !loading && (
               <TableRow>
                 <TableCell colSpan={3} align="center">
                   Access list is empty
+                </TableCell>
+              </TableRow>
+            )}
+
+            {loading && (
+              <TableRow>
+                <TableCell colSpan={3} align="center">
+                  Loading...
                 </TableCell>
               </TableRow>
             )}

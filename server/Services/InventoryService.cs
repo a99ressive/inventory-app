@@ -103,7 +103,7 @@ public class InventoryService : IInventoryService
     }
 
     // Для обновления с версией используйте отдельный DTO (UpdateInventoryDto)
-    public async Task UpdateWithVersionAsync(Guid id, UpdateInventoryDto dto, string userId, ClaimsPrincipal user)
+    public async Task<Inventory> UpdateWithVersionAsync(Guid id, UpdateInventoryDto dto, string userId, ClaimsPrincipal user)
     {
         var inventory = await _context.Inventories
             .FirstOrDefaultAsync(i => i.Id == id)
@@ -123,6 +123,7 @@ public class InventoryService : IInventoryService
         try
         {
             await _context.SaveChangesAsync();
+            return inventory;
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -169,9 +170,7 @@ public class InventoryService : IInventoryService
             .FirstOrDefaultAsync(i => i.Id == id)
             ?? throw new Exception("Inventory not found");
 
-        if (!inventory.IsPublic &&
-            inventory.OwnerId != userId &&
-            !user.IsInRole("Admin"))
+        if (!await HasReadAccess(inventory, userId, user))
             throw new UnauthorizedAccessException();
 
         inventory.CanWrite = userId != null && await HasWriteAccess(inventory, userId, user);
@@ -201,6 +200,9 @@ public class InventoryService : IInventoryService
         if (!HasOwnerRights(inventory, userId, user))
             throw new UnauthorizedAccessException();
 
+        if (targetUserId == inventory.OwnerId)
+            return;
+
         var exists = await _context.InventoryUserAccesses
             .AnyAsync(x => x.InventoryId == inventoryId && x.UserId == targetUserId);
 
@@ -224,6 +226,9 @@ public class InventoryService : IInventoryService
 
         if (!HasOwnerRights(inventory, userId, user))
             throw new UnauthorizedAccessException();
+
+        if (targetUserId == inventory.OwnerId)
+            return;
 
         var access = await _context.InventoryUserAccesses
             .FirstOrDefaultAsync(x => x.InventoryId == inventoryId && x.UserId == targetUserId);
@@ -259,7 +264,8 @@ public class InventoryService : IInventoryService
                     Id = u.Id,
                     Email = u.Email ?? string.Empty,
                     Name = u.UserName ?? string.Empty
-                });
+                })
+            .Where(x => x.Id != inventory.OwnerId);
 
         query = sortBy.ToLower() switch
         {
@@ -282,6 +288,29 @@ public class InventoryService : IInventoryService
             return true;
 
         if (inventory.IsPublic)
+            return true;
+
+        return await _context.InventoryUserAccesses
+            .AnyAsync(x =>
+                x.InventoryId == inventory.Id &&
+                x.UserId == userId);
+    }
+
+    private async Task<bool> HasReadAccess(
+        Inventory inventory,
+        string? userId,
+        ClaimsPrincipal user)
+    {
+        if (inventory.IsPublic)
+            return true;
+
+        if (userId == null)
+            return false;
+
+        if (inventory.OwnerId == userId)
+            return true;
+
+        if (user.IsInRole("Admin"))
             return true;
 
         return await _context.InventoryUserAccesses

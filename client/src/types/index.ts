@@ -8,6 +8,9 @@ export interface Inventory {
   LastSequence: number;
   RowVersion?: string | null;
   CanWrite?: boolean;
+  Tags?: string[];
+  CustomIdConfig?: unknown;
+  CustomFields?: unknown;
 }
 
 export interface Item {
@@ -25,4 +28,20 @@ export interface User {
   Id: string;
   UserName: string;
   Email: string;
+}
+
+export interface CustomField {
+  Type: string;
+  Title: string;
+  Description?: string | null;
+  ShowInTable: boolean;
+}
+
+export interface InventoryComment {
+  Id: string;
+  InventoryId: string;
+  UserId: string;
+  UserName: string;
+  Content: string;
+  CreatedAt: string;
 }

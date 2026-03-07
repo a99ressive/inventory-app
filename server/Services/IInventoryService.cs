@@ -28,5 +28,5 @@ public interface IInventoryService
 
     Task UpdateFieldsAsync(Guid id, UpdateFieldsDto dto, string userId, ClaimsPrincipal user);
 
-    Task UpdateWithVersionAsync(Guid id, UpdateInventoryDto dto, string userId, ClaimsPrincipal user);
+    Task<Inventory> UpdateWithVersionAsync(Guid id, UpdateInventoryDto dto, string userId, ClaimsPrincipal user);
 }

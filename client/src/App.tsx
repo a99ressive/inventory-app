@@ -58,6 +58,15 @@ function App() {
             }
           />
 
+          <Route
+            path="/profile/:id"
+            element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
+
           <Route path="/inventories/:id" element={<InventoryDetail />} />
         </Routes>
       </Container>
