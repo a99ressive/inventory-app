@@ -1,4 +1,6 @@
-﻿public class UpdateFieldsDto
+namespace server.DTOs;
+
+public class UpdateFieldsDto
 {
     public List<CustomFieldDto> Fields { get; set; } = new();
 }

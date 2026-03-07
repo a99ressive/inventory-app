@@ -35,6 +35,7 @@ namespace server.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "text", nullable: false),
+                    IsBlocked = table.Column<bool>(type: "boolean", nullable: false),
                     UserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
                     Email = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: true),
@@ -251,6 +252,25 @@ namespace server.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "InventoryTags",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    InventoryId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Tag = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryTags", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InventoryTags_Inventories_InventoryId",
+                        column: x => x.InventoryId,
+                        principalTable: "Inventories",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "InventoryUserAccesses",
                 columns: table => new
                 {
@@ -411,6 +431,12 @@ namespace server.Migrations
                 .Annotation("Npgsql:IndexMethod", "GIN");
 
             migrationBuilder.CreateIndex(
+                name: "IX_InventoryTags_InventoryId_Tag",
+                table: "InventoryTags",
+                columns: new[] { "InventoryId", "Tag" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_InventoryUserAccesses_UserId",
                 table: "InventoryUserAccesses",
                 column: "UserId");
@@ -458,6 +484,9 @@ namespace server.Migrations
 
             migrationBuilder.DropTable(
                 name: "Comments");
+
+            migrationBuilder.DropTable(
+                name: "InventoryTags");
 
             migrationBuilder.DropTable(
                 name: "InventoryUserAccesses");

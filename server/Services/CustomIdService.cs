@@ -1,8 +1,9 @@
-﻿using server.Data;
-using server.Models.CustomId;
-using server.Services;
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using server.Data;
+using server.Models.CustomId;
+using System.Text.Json;
+
+namespace server.Services;
 
 public class CustomIdService : ICustomIdService
 {
@@ -26,25 +27,20 @@ public class CustomIdService : ICustomIdService
             .FirstOrDefaultAsync();
 
         if (inventory == null)
-            throw new Exception("Inventory not found");
+            throw new KeyNotFoundException("Inventory not found.");
 
         if (inventory.CustomIdConfig == null)
-            throw new Exception("CustomId config not set");
+            throw new InvalidOperationException("CustomId config is not set.");
 
         var config = JsonSerializer.Deserialize<CustomIdConfig>(
             inventory.CustomIdConfig.RootElement.GetRawText());
 
         if (config == null || config.Elements.Count == 0)
-            throw new Exception("Invalid CustomId config");
+            throw new InvalidOperationException("Invalid CustomId config.");
 
         var now = DateTime.UtcNow;
-
-        // Проверяем, есть ли элемент Sequence в конфигурации
-        bool hasSequence = config.Elements.Any(e => e.Type == CustomIdElementType.Sequence);
-
-        // Если есть Sequence, берём следующий номер, иначе просто 0 (не используется)
-        int nextSequence = hasSequence ? inventory.LastSequence + 1 : 0;
-
+        var hasSequence = config.Elements.Any(e => e.Type == CustomIdElementType.Sequence);
+        var nextSequence = hasSequence ? inventory.LastSequence + 1 : 0;
         var parts = new List<string>();
 
         foreach (var element in config.Elements)
@@ -52,7 +48,6 @@ public class CustomIdService : ICustomIdService
             parts.Add(GenerateElement(element, nextSequence, now));
         }
 
-        // Увеличиваем счётчик только если Sequence действительно присутствует
         if (hasSequence)
             inventory.LastSequence = nextSequence;
 
@@ -65,8 +60,7 @@ public class CustomIdService : ICustomIdService
     public string GeneratePreview(CustomIdConfig config, int currentSequence)
     {
         var now = DateTime.UtcNow;
-        int previewSequence = currentSequence + 1; // Для предпросмотра показываем следующий
-
+        var previewSequence = currentSequence + 1;
         var parts = new List<string>();
 
         foreach (var element in config.Elements)
@@ -77,7 +71,7 @@ public class CustomIdService : ICustomIdService
         return string.Concat(parts);
     }
 
-    private string GenerateElement(
+    private static string GenerateElement(
         CustomIdElement element,
         int sequence,
         DateTime now)
@@ -85,7 +79,7 @@ public class CustomIdService : ICustomIdService
         switch (element.Type)
         {
             case CustomIdElementType.FixedText:
-                return element.Value ?? "";
+                return element.Value ?? string.Empty;
 
             case CustomIdElementType.Sequence:
                 var seqString = sequence.ToString();
@@ -112,7 +106,7 @@ public class CustomIdService : ICustomIdService
                 return now.ToString(element.Format ?? "yyyy");
 
             default:
-                throw new Exception("Unknown element type");
+                throw new InvalidOperationException("Unknown Custom ID element type.");
         }
     }
 }

@@ -40,6 +40,10 @@ public class ItemController : ControllerBase
 
             return Ok(result);
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict("Item was modified by another user.");
+        }
         catch (DbUpdateException)
         {
             return Conflict("CustomId must be unique within inventory.");
@@ -78,6 +82,10 @@ public class ItemController : ControllerBase
             );
 
             return NoContent();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict("Item was modified by another user.");
         }
         catch (DbUpdateException)
         {

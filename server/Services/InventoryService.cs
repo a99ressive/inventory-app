@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using server.Data;
 using server.DTOs;
 using server.Models;
@@ -24,9 +24,9 @@ public class InventoryService : IInventoryService
             .AnyAsync(t => t.Id == dto.InventoryTypeId);
 
         if (!typeExists)
-            throw new Exception("Invalid inventory type");
+            throw new InvalidOperationException("Invalid inventory type.");
 
-        // Создаём дефолтную конфигурацию Custom ID (например, последовательность из 4 цифр)
+        // ??????? ????????? ???????????? Custom ID (????????, ?????????????????? ?? 4 ????)
         var defaultConfig = new CustomIdConfig
         {
             Elements = new List<CustomIdElement>
@@ -45,7 +45,7 @@ public class InventoryService : IInventoryService
             IsPublic = dto.IsPublic,
             CustomIdConfig = JsonDocument.Parse(JsonSerializer.Serialize(defaultConfig)),
             LastSequence = 0,
-            CustomFields = null // пока без полей
+            CustomFields = null // ???? ??? ?????
         };
 
         inventory.Tags = NormalizeTags(dto.Tags)
@@ -67,12 +67,12 @@ public class InventoryService : IInventoryService
     {
         var inventory = await _context.Inventories
             .FirstOrDefaultAsync(i => i.Id == id)
-            ?? throw new Exception("Inventory not found");
+            ?? throw new KeyNotFoundException("Inventory not found.");
 
         if (!HasOwnerRights(inventory, userId, user))
             throw new UnauthorizedAccessException();
 
-        // Обновляем поля
+        // ????????? ????
         inventory.Title = dto.Title;
         inventory.Description = dto.Description;
         inventory.InventoryTypeId = dto.InventoryTypeId;
@@ -91,7 +91,7 @@ public class InventoryService : IInventoryService
             });
         }
 
-        // Сохраняем с проверкой concurrency (если передаётся RowVersion, нужно использовать UpdateInventoryDto)
+        // ????????? ? ????????? concurrency (???? ?????????? RowVersion, ????? ???????????? UpdateInventoryDto)
         try
         {
             await _context.SaveChangesAsync();
@@ -102,12 +102,12 @@ public class InventoryService : IInventoryService
         }
     }
 
-    // Для обновления с версией используйте отдельный DTO (UpdateInventoryDto)
+    // ??? ?????????? ? ??????? ??????????? ????????? DTO (UpdateInventoryDto)
     public async Task<Inventory> UpdateWithVersionAsync(Guid id, UpdateInventoryDto dto, string userId, ClaimsPrincipal user)
     {
         var inventory = await _context.Inventories
             .FirstOrDefaultAsync(i => i.Id == id)
-            ?? throw new Exception("Inventory not found");
+            ?? throw new KeyNotFoundException("Inventory not found.");
 
         if (!HasOwnerRights(inventory, userId, user))
             throw new UnauthorizedAccessException();
@@ -117,7 +117,7 @@ public class InventoryService : IInventoryService
         inventory.InventoryTypeId = dto.InventoryTypeId;
         inventory.IsPublic = dto.IsPublic;
 
-        // Устанавливаем оригинальную версию для оптимистичной блокировки
+        // ????????????? ???????????? ?????? ??? ????????????? ??????????
         _context.Entry(inventory).Property(x => x.RowVersion).OriginalValue = dto.RowVersion;
 
         try
@@ -131,12 +131,12 @@ public class InventoryService : IInventoryService
         }
     }
 
-    // Аналогично для UpdateFieldsAsync нужно добавить concurrency
+    // ?????????? ??? UpdateFieldsAsync ????? ???????? concurrency
     public async Task UpdateFieldsAsync(Guid id, UpdateFieldsDto dto, string userId, ClaimsPrincipal user)
     {
         var inventory = await _context.Inventories
             .FirstOrDefaultAsync(i => i.Id == id)
-            ?? throw new Exception("Inventory not found");
+            ?? throw new KeyNotFoundException("Inventory not found.");
 
         if (!HasOwnerRights(inventory, userId, user))
             throw new UnauthorizedAccessException();
@@ -168,7 +168,7 @@ public class InventoryService : IInventoryService
         var inventory = await _context.Inventories
             .Include(i => i.InventoryType)
             .FirstOrDefaultAsync(i => i.Id == id)
-            ?? throw new Exception("Inventory not found");
+            ?? throw new KeyNotFoundException("Inventory not found.");
 
         if (!await HasReadAccess(inventory, userId, user))
             throw new UnauthorizedAccessException();
@@ -182,7 +182,7 @@ public class InventoryService : IInventoryService
     {
         var inventory = await _context.Inventories
             .FirstOrDefaultAsync(i => i.Id == id)
-            ?? throw new Exception("Inventory not found");
+            ?? throw new KeyNotFoundException("Inventory not found.");
 
         if (!HasOwnerRights(inventory, userId, user))
             throw new UnauthorizedAccessException();
@@ -195,7 +195,7 @@ public class InventoryService : IInventoryService
     {
         var inventory = await _context.Inventories
             .FirstOrDefaultAsync(i => i.Id == inventoryId)
-            ?? throw new Exception("Inventory not found");
+            ?? throw new KeyNotFoundException("Inventory not found.");
 
         if (!HasOwnerRights(inventory, userId, user))
             throw new UnauthorizedAccessException();
@@ -222,7 +222,7 @@ public class InventoryService : IInventoryService
     {
         var inventory = await _context.Inventories
             .FirstOrDefaultAsync(i => i.Id == inventoryId)
-            ?? throw new Exception("Inventory not found");
+            ?? throw new KeyNotFoundException("Inventory not found.");
 
         if (!HasOwnerRights(inventory, userId, user))
             throw new UnauthorizedAccessException();
@@ -248,7 +248,7 @@ public class InventoryService : IInventoryService
     {
         var inventory = await _context.Inventories
             .FirstOrDefaultAsync(i => i.Id == inventoryId)
-            ?? throw new Exception("Inventory not found");
+            ?? throw new KeyNotFoundException("Inventory not found.");
 
         if (!HasOwnerRights(inventory, userId, user))
             throw new UnauthorizedAccessException();
@@ -327,19 +327,19 @@ public class InventoryService : IInventoryService
     private void ValidateFieldLimits(List<CustomFieldDto> fields)
     {
         if (fields.Count(f => f.Type == "string") > 3)
-            throw new Exception("Max 3 single-line fields");
+            throw new InvalidOperationException("Max 3 single-line fields.");
 
         if (fields.Count(f => f.Type == "text") > 3)
-            throw new Exception("Max 3 multi-line fields");
+            throw new InvalidOperationException("Max 3 multi-line fields.");
 
         if (fields.Count(f => f.Type == "number") > 3)
-            throw new Exception("Max 3 numeric fields");
+            throw new InvalidOperationException("Max 3 numeric fields.");
 
         if (fields.Count(f => f.Type == "boolean") > 3)
-            throw new Exception("Max 3 boolean fields");
+            throw new InvalidOperationException("Max 3 boolean fields.");
 
         if (fields.Count(f => f.Type == "link") > 3)
-            throw new Exception("Max 3 link fields");
+            throw new InvalidOperationException("Max 3 link fields.");
     }
 
     private static List<string> NormalizeTags(IEnumerable<string>? tags)
@@ -355,3 +355,4 @@ public class InventoryService : IInventoryService
             .ToList();
     }
 }
+

@@ -14,7 +14,7 @@ using server.Data;
 namespace server.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260306130714_Initial")]
+    [Migration("20260307155635_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -178,6 +178,9 @@ namespace server.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsBlocked")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean");
 
@@ -307,6 +310,28 @@ namespace server.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
 
                     b.ToTable("Inventories");
+                });
+
+            modelBuilder.Entity("server.Models.InventoryTag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InventoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InventoryId", "Tag")
+                        .IsUnique();
+
+                    b.ToTable("InventoryTags");
                 });
 
             modelBuilder.Entity("server.Models.InventoryType", b =>
@@ -601,6 +626,17 @@ namespace server.Migrations
                     b.Navigation("Owner");
                 });
 
+            modelBuilder.Entity("server.Models.InventoryTag", b =>
+                {
+                    b.HasOne("server.Models.Inventory", "Inventory")
+                        .WithMany("Tags")
+                        .HasForeignKey("InventoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Inventory");
+                });
+
             modelBuilder.Entity("server.Models.InventoryUserAccess", b =>
                 {
                     b.HasOne("server.Models.Inventory", "Inventory")
@@ -656,6 +692,11 @@ namespace server.Migrations
                     b.Navigation("Item");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("server.Models.Inventory", b =>
+                {
+                    b.Navigation("Tags");
                 });
 #pragma warning restore 612, 618
         }

@@ -32,7 +32,7 @@ public class ItemService : IItemService
     {
         var inventory = await _context.Inventories
             .FirstOrDefaultAsync(i => i.Id == inventoryId)
-            ?? throw new Exception("Inventory not found");
+            ?? throw new KeyNotFoundException("Inventory not found.");
 
         if (!await HasWriteAccess(inventory, userId, user))
             throw new UnauthorizedAccessException();
@@ -66,12 +66,12 @@ public class ItemService : IItemService
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
                 if (attempt == maxAttempts)
-                    throw new Exception("Не удалось создать уникальный ID. Попробуйте ещё раз или введите ID вручную.");
+                    throw new InvalidOperationException("Failed to generate a unique Custom ID. Try again or set it manually.");
                 // иначе продолжаем цикл
             }
         }
 
-        throw new Exception("Unexpected error");
+        throw new InvalidOperationException("Failed to create item.");
     }
 
     public async Task UpdateAsync(
@@ -83,10 +83,10 @@ public class ItemService : IItemService
     {
         var item = await _context.Items
             .FirstOrDefaultAsync(i => i.Id == itemId)
-            ?? throw new Exception("Item not found");
+            ?? throw new KeyNotFoundException("Item not found.");
 
         if (item.InventoryId != inventoryId)
-            throw new Exception("Item does not belong to inventory");
+            throw new InvalidOperationException("Item does not belong to this inventory.");
 
         var inventory = await _context.Inventories
             .FirstAsync(i => i.Id == inventoryId);
@@ -99,15 +99,15 @@ public class ItemService : IItemService
         {
             var config = JsonSerializer.Deserialize<CustomIdConfig>(
                 inventory.CustomIdConfig.RootElement.GetRawText());
-            if (!_validationService.IsValid(dto.CustomId, config))
-                throw new Exception("Custom ID не соответствует формату.");
+            if (config == null || !_validationService.IsValid(dto.CustomId, config))
+                throw new InvalidOperationException("Custom ID does not match inventory format.");
         }
 
         // Проверка уникальности Custom ID (кроме самого себя)
         bool duplicate = await _context.Items
             .AnyAsync(i => i.InventoryId == inventoryId && i.CustomId == dto.CustomId && i.Id != itemId);
         if (duplicate)
-            throw new Exception("Custom ID уже существует в этом инвентаре.");
+            throw new InvalidOperationException("Custom ID already exists in this inventory.");
 
         item.CustomId = dto.CustomId;
         item.Data = dto.Data != null
@@ -133,7 +133,7 @@ public class ItemService : IItemService
     {
         var inventory = await _context.Inventories
             .FirstOrDefaultAsync(i => i.Id == inventoryId)
-            ?? throw new Exception("Inventory not found");
+            ?? throw new KeyNotFoundException("Inventory not found.");
 
         if (!await HasReadAccess(inventory, userId, user))
             throw new UnauthorizedAccessException();
@@ -151,10 +151,10 @@ public class ItemService : IItemService
     {
         var item = await _context.Items
             .FirstOrDefaultAsync(i => i.Id == itemId)
-            ?? throw new Exception("Item not found");
+            ?? throw new KeyNotFoundException("Item not found.");
 
         if (item.InventoryId != inventoryId)
-            throw new Exception("Item does not belong to inventory");
+            throw new InvalidOperationException("Item does not belong to this inventory.");
 
         var inventory = await _context.Inventories
             .FirstAsync(i => i.Id == inventoryId);
@@ -228,7 +228,7 @@ public class ItemService : IItemService
         foreach (var field in fields!)
         {
             if (!data.ContainsKey(field.Title))
-                throw new Exception($"Missing field {field.Title}");
+                throw new InvalidOperationException($"Missing field {field.Title}.");
         }
     }
 }

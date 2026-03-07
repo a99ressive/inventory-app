@@ -57,7 +57,7 @@ namespace server.Services
                     @".+?",
 
                 _ =>
-                    throw new Exception("Unknown element type")
+                    throw new InvalidOperationException("Unknown Custom ID element type.")
             };
         }
     }

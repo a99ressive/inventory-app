@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using server.DTOs;
 using server.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -27,8 +28,11 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register(string email, string password)
+    public async Task<IActionResult> Register([FromBody] RegisterRequestDto dto)
     {
+        var email = dto.Email.Trim();
+        var password = dto.Password;
+
         var user = new ApplicationUser
         {
             UserName = email,
@@ -51,8 +55,11 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(string email, string password)
+    public async Task<IActionResult> Login([FromBody] LoginRequestDto dto)
     {
+        var email = dto.Email.Trim();
+        var password = dto.Password;
+
         var user = await _userManager.FindByEmailAsync(email);
         if (user == null)
             return Unauthorized();
@@ -86,7 +93,8 @@ public class AuthController : ControllerBase
 
         if (signInResult.Succeeded)
         {
-            user = (await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey))!;
+            user = await _userManager.FindByLoginAsync(info.LoginProvider, info.ProviderKey)
+                ?? throw new InvalidOperationException("External login succeeded, but user was not found.");
         }
         else
         {
@@ -94,9 +102,9 @@ public class AuthController : ControllerBase
             if (email == null)
                 return BadRequest("Email not received");
 
-            user = await _userManager.FindByEmailAsync(email)!;
+            var existingUser = await _userManager.FindByEmailAsync(email);
 
-            if (user == null)
+            if (existingUser == null)
             {
                 user = new ApplicationUser
                 {
@@ -109,6 +117,10 @@ public class AuthController : ControllerBase
                     return BadRequest(createResult.Errors);
 
                 await _userManager.AddToRoleAsync(user, "User");
+            }
+            else
+            {
+                user = existingUser;
             }
 
             var addLoginResult = await _userManager.AddLoginAsync(user, info);
