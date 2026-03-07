@@ -175,9 +175,10 @@ const InventoryItemsTab: React.FC<InventoryItemsTabProps> = ({
 
       <ItemFormModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={()=>setModalOpen(false)}
         inventoryId={inventoryId}
         item={editingItem}
+        fields={tableFields}
         onSuccess={onRefresh}
       />
     </>

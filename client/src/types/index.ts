@@ -31,10 +31,9 @@ export interface User {
 }
 
 export interface CustomField {
-  Type: string;
-  Title: string;
-  Description?: string | null;
-  ShowInTable: boolean;
+  Title: string
+  Type: string
+  Description?: string | null
 }
 
 export interface InventoryComment {

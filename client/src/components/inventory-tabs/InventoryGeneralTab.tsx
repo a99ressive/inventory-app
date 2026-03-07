@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
   Alert,
@@ -18,6 +18,11 @@ import {
 import api from '../../api/axios';
 import type { Inventory } from '../../types';
 
+interface InventoryType {
+  id: number;
+  name: string;
+}
+
 interface InventoryGeneralTabProps {
   inventory: Inventory;
   canEdit: boolean;
@@ -31,61 +36,37 @@ type GeneralFormState = {
   isPublic: boolean;
 };
 
-const INVENTORY_TYPES = [
-  { id: 1, name: 'Electronics' },
-  { id: 2, name: 'Books' },
-  { id: 3, name: 'Apparel' },
-  { id: 4, name: 'Furniture' },
-  { id: 5, name: 'Tools' },
-  { id: 6, name: 'Automotive' },
-  { id: 7, name: 'Sports' },
-  { id: 8, name: 'Medical' },
-  { id: 9, name: 'Food' },
-  { id: 10, name: 'Cosmetics' },
-  { id: 11, name: 'Construction' },
-  { id: 12, name: 'Miscellaneous' },
-];
-
-function createFormFromInventory(inventory: Inventory): GeneralFormState {
-  return {
-    title: inventory.Title ?? '',
-    description: inventory.Description ?? '',
-    inventoryTypeId: inventory.InventoryTypeId,
-    isPublic: inventory.IsPublic,
-  };
-}
-
 const InventoryGeneralTab: React.FC<InventoryGeneralTabProps> = ({
   inventory,
   canEdit,
   onInventoryUpdated,
 }) => {
-  const [form, setForm] = React.useState<GeneralFormState>(() => createFormFromInventory(inventory));
-  const [rowVersion, setRowVersion] = React.useState<string>(inventory.RowVersion ?? '');
-  const [dirty, setDirty] = React.useState(false);
-  const [saving, setSaving] = React.useState(false);
-  const [lastSavedAt, setLastSavedAt] = React.useState<Date | null>(null);
-  const [error, setError] = React.useState('');
-  const [conflict, setConflict] = React.useState(false);
 
-  React.useEffect(() => {
-    setForm(createFormFromInventory(inventory));
-    setRowVersion(inventory.RowVersion ?? '');
-    setDirty(false);
-    setConflict(false);
-  }, [inventory]);
+  const [types, setTypes] = useState<InventoryType[]>([]);
 
-  const saveChanges = React.useCallback(async () => {
-    if (!canEdit || !dirty || saving || conflict) return;
+  const [form, setForm] = useState<GeneralFormState>({
+    title: inventory.Title,
+    description: inventory.Description ?? '',
+    inventoryTypeId: inventory.InventoryTypeId,
+    isPublic: inventory.IsPublic
+  });
 
-    if (!rowVersion) {
-      setError('Missing version token. Reload page and try again.');
-      return;
-    }
+  const [rowVersion, setRowVersion] = useState<string>(inventory.RowVersion ?? '');
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    api.get('/inventory-types')
+      .then(res => setTypes(res.data))
+      .catch(() => setError('Failed to load categories'));
+  }, []);
+
+  const saveChanges = async () => {
+    if (!canEdit || !dirty) return;
 
     try {
       setSaving(true);
-      setError('');
 
       const res = await api.put(`/Inventory/${inventory.Id}`, {
         title: form.title,
@@ -93,130 +74,112 @@ const InventoryGeneralTab: React.FC<InventoryGeneralTabProps> = ({
         inventoryTypeId: form.inventoryTypeId,
         isPublic: form.isPublic,
         tags: inventory.Tags ?? [],
-        rowVersion,
+        rowVersion
       });
 
-      const nextRowVersion = (res.data?.RowVersion as string | undefined) ?? rowVersion;
-      setRowVersion(nextRowVersion);
+      setRowVersion(res.data.rowVersion);
       setDirty(false);
-      setConflict(false);
-      setLastSavedAt(new Date());
 
       onInventoryUpdated({
         Title: form.title,
         Description: form.description,
         InventoryTypeId: form.inventoryTypeId,
         IsPublic: form.isPublic,
-        RowVersion: nextRowVersion,
+        RowVersion: res.data.rowVersion
       });
+
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
-        setConflict(true);
-        setError('Inventory was changed by another user. Refresh the page before editing again.');
-        return;
+        setError('Inventory was modified by another user. Refresh page.');
+      } else {
+        setError('Failed to save changes');
       }
-
-      setError('Autosave failed. Changes are still local and will retry on next cycle.');
     } finally {
       setSaving(false);
     }
-  }, [canEdit, dirty, saving, conflict, rowVersion, inventory.Id, inventory.Tags, form, onInventoryUpdated]);
+  };
 
-  React.useEffect(() => {
-    if (!canEdit) return undefined;
-
-    const timer = window.setInterval(() => {
-      void saveChanges();
-    }, 8000);
-
-    return () => window.clearInterval(timer);
-  }, [canEdit, saveChanges]);
-
-  const onFieldChange = <K extends keyof GeneralFormState>(key: K, value: GeneralFormState[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+  const updateField = <K extends keyof GeneralFormState>(
+    key: K,
+    value: GeneralFormState[K]
+  ) => {
+    setForm(prev => ({ ...prev, [key]: value }));
     setDirty(true);
-    setConflict(false);
   };
 
   return (
-    <Paper sx={{ p: 2 }}>
+    <Paper sx={{ p: 3 }}>
+
       <Typography variant="h6" sx={{ mb: 2 }}>
         General settings
       </Typography>
 
-      {!canEdit && (
-        <Alert severity="info" sx={{ mb: 2 }}>
-          You have read-only access to inventory settings.
-        </Alert>
-      )}
-
-      {error && (
-        <Alert severity={conflict ? 'warning' : 'error'} sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
+      {error && <Alert severity="error">{error}</Alert>}
 
       <Stack spacing={2}>
+
         <TextField
           label="Title"
           value={form.title}
-          onChange={(event) => onFieldChange('title', event.target.value)}
+          onChange={(e) => updateField('title', e.target.value)}
           disabled={!canEdit}
-          required
         />
 
         <TextField
           label="Description"
           value={form.description}
-          onChange={(event) => onFieldChange('description', event.target.value)}
+          onChange={(e) => updateField('description', e.target.value)}
           multiline
-          minRows={4}
+          rows={4}
           disabled={!canEdit}
         />
 
         <FormControl>
+
           <InputLabel>Category</InputLabel>
+
           <Select
             label="Category"
             value={form.inventoryTypeId}
-            onChange={(event) => onFieldChange('inventoryTypeId', Number(event.target.value))}
+            onChange={(e) => updateField('inventoryTypeId', Number(e.target.value))}
             disabled={!canEdit}
           >
-            {INVENTORY_TYPES.map((type) => (
+
+            {types.map(type => (
               <MenuItem key={type.id} value={type.id}>
                 {type.name}
               </MenuItem>
             ))}
+
           </Select>
+
         </FormControl>
 
         <FormControlLabel
           control={
             <Checkbox
               checked={form.isPublic}
-              onChange={(event) => onFieldChange('isPublic', event.target.checked)}
+              onChange={(e) => updateField('isPublic', e.target.checked)}
               disabled={!canEdit}
             />
           }
-          label="Public inventory (all authenticated users can add/edit items)"
+          label="Public inventory (all authenticated users can add items)"
         />
+
       </Stack>
 
-      <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
+      <Box sx={{ mt: 3 }}>
+
         <Button
           variant="contained"
-          onClick={() => void saveChanges()}
-          disabled={!canEdit || !dirty || saving || conflict}
+          onClick={saveChanges}
+          disabled={!dirty || saving || !canEdit}
         >
-          Save now
+          Save
         </Button>
-        <Typography variant="body2" color="text.secondary">
-          {saving && 'Saving...'}
-          {!saving && dirty && !conflict && 'Unsaved changes. Autosave runs every 8 seconds.'}
-          {!saving && !dirty && lastSavedAt && `Last saved: ${lastSavedAt.toLocaleTimeString()}`}
-          {!saving && !dirty && !lastSavedAt && 'No local changes.'}
-        </Typography>
+
       </Box>
+
     </Paper>
   );
 };

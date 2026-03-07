@@ -1,156 +1,124 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Modal,
   Box,
   Typography,
-  TextField,
   Button,
-  CircularProgress,
+  CircularProgress
 } from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
 import api from '../api/axios';
+import DynamicItemForm from './forms/DynamicItemForm'
+import type { CustomField } from '../types';
 import type { Item } from '../types';
 
-interface ItemFormData {
-  customId: string;
-  data: string;
-}
-
-interface ItemFormModalProps {
-  open: boolean;
-  onClose: () => void;
-  inventoryId: string;
-  item?: Item;
-  onSuccess: () => void;
+interface Props {
+  open: boolean
+  onClose: () => void
+  inventoryId: string
+  item?: Item
+  fields: CustomField[]
+  onSuccess: () => void
 }
 
 const style = {
   position: 'absolute',
   top: '50%',
   left: '50%',
-  transform: 'translate(-50%, -50%)',
-  width: 400,
+  transform: 'translate(-50%,-50%)',
+  width: 500,
   bgcolor: 'background.paper',
   boxShadow: 24,
-  p: 4,
-  borderRadius: 1,
-};
+  p: 4
+}
 
-const ItemFormModal: React.FC<ItemFormModalProps> = ({
+type ItemValues = Record<string, unknown>
+
+const ItemFormModal: React.FC<Props> = ({
   open,
   onClose,
   inventoryId,
   item,
-  onSuccess,
+  fields,
+  onSuccess
 }) => {
-  const {
-    control,
-    handleSubmit,
-    reset,
-    setValue,
-    formState: { errors, isSubmitting },
-  } = useForm<ItemFormData>({
-    defaultValues: {
-      customId: '',
-      data: '{}',
-    },
-  });
+
+  const [values, setValues] = useState<ItemValues>({})
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (item) {
-      setValue('customId', item.CustomId);
-      setValue('data', JSON.stringify(item.Data, null, 2));
+      setValues(item.Data as ItemValues)
     } else {
-      reset();
+      setValues({})
     }
-  }, [item, setValue, reset]);
+  }, [item])
 
-  const onSubmit = async (formData: ItemFormData) => {
+  const handleChange = (field: string, value: unknown) => {
+    setValues(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleSubmit = async () => {
+
     try {
-      const dataObj = JSON.parse(formData.data);
+      setLoading(true)
 
       if (item) {
         await api.put(`/inventory/${inventoryId}/items/${item.Id}`, {
-          customId: formData.customId,
-          data: dataObj,
-          rowVersion: item.RowVersion,
-        });
+          customId: item.CustomId,
+          data: values,
+          rowVersion: item.RowVersion
+        })
       } else {
         await api.post(`/inventory/${inventoryId}/items`, {
-          data: dataObj,
-        });
+          data: values
+        })
       }
 
-      onSuccess();
-      onClose();
+      onSuccess()
+      onClose()
+
     } catch {
-      alert('Failed to save item. Check JSON and ID format.');
+      alert("Failed to save item")
     }
-  };
+    finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <Modal open={open} onClose={onClose}>
+
       <Box sx={style}>
-        <Typography variant="h6" gutterBottom>
-          {item ? 'Edit Item' : 'Create Item'}
+
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          {item ? "Edit Item" : "Create Item"}
         </Typography>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          {item && (
-            <Controller
-              name="customId"
-              control={control}
-              rules={{ required: 'Custom ID is required' }}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Custom ID"
-                  fullWidth
-                  margin="normal"
-                  error={!!errors.customId}
-                  helperText={errors.customId?.message}
-                />
-              )}
-            />
-          )}
 
-          <Controller
-            name="data"
-            control={control}
-            rules={{
-              required: 'Data is required',
-              validate: (value) => {
-                try {
-                  JSON.parse(value);
-                  return true;
-                } catch {
-                  return 'Invalid JSON';
-                }
-              },
-            }}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Data (JSON)"
-                fullWidth
-                margin="normal"
-                multiline
-                rows={6}
-                error={!!errors.data}
-                helperText={errors.data?.message}
-              />
-            )}
-          />
-          
-          <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-            <Button onClick={onClose}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={isSubmitting}>
-              {isSubmitting ? <CircularProgress size={24} /> : 'Save'}
-            </Button>
-          </Box>
-        </form>
+        <DynamicItemForm
+          fields={fields}
+          values={values}
+          onChange={handleChange}
+        />
+
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+          <Button onClick={onClose}>Cancel</Button>
+
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? <CircularProgress size={22} /> : "Save"}
+          </Button>
+        </Box>
+
       </Box>
-    </Modal>
-  );
-};
 
-export default ItemFormModal;
+    </Modal>
+  )
+}
+
+export default ItemFormModal
