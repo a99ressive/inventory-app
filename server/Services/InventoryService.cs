@@ -174,6 +174,8 @@ public class InventoryService : IInventoryService
             !user.IsInRole("Admin"))
             throw new UnauthorizedAccessException();
 
+        inventory.CanWrite = userId != null && await HasWriteAccess(inventory, userId, user);
+
         return inventory;
     }
 
@@ -246,6 +248,26 @@ public class InventoryService : IInventoryService
             .Where(x => x.InventoryId == inventoryId)
             .Select(x => x.UserId)
             .ToListAsync();
+    }
+
+    private async Task<bool> HasWriteAccess(
+        Inventory inventory,
+        string userId,
+        ClaimsPrincipal user)
+    {
+        if (inventory.OwnerId == userId)
+            return true;
+
+        if (user.IsInRole("Admin"))
+            return true;
+
+        if (inventory.IsPublic)
+            return true;
+
+        return await _context.InventoryUserAccesses
+            .AnyAsync(x =>
+                x.InventoryId == inventory.Id &&
+                x.UserId == userId);
     }
 
     private bool HasOwnerRights(Inventory inventory, string userId, ClaimsPrincipal user)

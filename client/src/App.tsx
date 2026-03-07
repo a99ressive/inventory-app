@@ -8,6 +8,8 @@ import CreateInventory from './pages/CreateInventory';
 import InventoryDetail from './pages/InventoryDetail';
 import Home from './pages/Home';
 import { Box, Container } from '@mui/material';
+import Profile from './pages/Profile';
+import AdminPage from './pages/AdminPage';
 
 function App() {
   return (
@@ -19,6 +21,15 @@ function App() {
 
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          <Route
+            path="/admin"
+            element={
+              <PrivateRoute>
+                <AdminPage />
+              </PrivateRoute>
+            }
+          />
 
           <Route
             path="/inventories"
@@ -34,6 +45,15 @@ function App() {
             element={
               <PrivateRoute>
                 <CreateInventory />
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <Profile />
               </PrivateRoute>
             }
           />

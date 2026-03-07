@@ -11,11 +11,13 @@ import {
   IconButton,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import { isAdminToken } from '../utils/auth';
 
 const NavBar: React.FC = () => {
   const [query, setQuery] = React.useState('');
   const navigate = useNavigate();
   const token = localStorage.getItem('token');
+  const isAdmin = isAdminToken(token);
 
   const onSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +70,14 @@ const NavBar: React.FC = () => {
           <>
             <Button color="inherit" component={RouterLink} to="/inventories">
               My inventories
+            </Button>
+            {isAdmin && (
+              <Button color="inherit" component={RouterLink} to="/admin">
+                Admin
+              </Button>
+            )}
+            <Button color="inherit" component={RouterLink} to="/profile">
+              Profile
             </Button>
             <Button color="inherit" onClick={logout}>
               Logout

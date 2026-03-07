@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using NpgsqlTypes;
 
@@ -34,4 +35,7 @@ public class Inventory
 
     [Timestamp]
     public byte[]? RowVersion { get; set; }
+
+    [NotMapped]
+    public bool CanWrite { get; set; }
 }

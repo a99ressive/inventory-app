@@ -11,19 +11,16 @@ import { useForm, Controller } from 'react-hook-form';
 import api from '../api/axios';
 import type { Item } from '../types';
 
-// Импортируем тип Item, если он есть в проекте
-// import { Item } from '../types';
-
 interface ItemFormData {
   customId: string;
-  data: string; // JSON string
+  data: string;
 }
 
 interface ItemFormModalProps {
   open: boolean;
   onClose: () => void;
   inventoryId: string;
-  item?: Item; // объект предмета для редактирования
+  item?: Item;
   onSuccess: () => void;
 }
 
@@ -71,20 +68,23 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
   const onSubmit = async (formData: ItemFormData) => {
     try {
       const dataObj = JSON.parse(formData.data);
-      const payload = {
-        customId: formData.customId,
-        data: dataObj,
-      };
 
       if (item) {
-        await api.put(`/inventory/${inventoryId}/items/${item.Id}`, payload);
+        await api.put(`/inventory/${inventoryId}/items/${item.Id}`, {
+          customId: formData.customId,
+          data: dataObj,
+          rowVersion: item.RowVersion,
+        });
       } else {
-        await api.post(`/inventory/${inventoryId}/items`, payload);
+        await api.post(`/inventory/${inventoryId}/items`, {
+          data: dataObj,
+        });
       }
+
       onSuccess();
       onClose();
     } catch {
-      alert('Failed to save item. Check JSON format.');
+      alert('Failed to save item. Check JSON and ID format.');
     }
   };
 
@@ -95,21 +95,24 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
           {item ? 'Edit Item' : 'Create Item'}
         </Typography>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <Controller
-            name="customId"
-            control={control}
-            rules={{ required: 'Custom ID is required' }}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                label="Custom ID"
-                fullWidth
-                margin="normal"
-                error={!!errors.customId}
-                helperText={errors.customId?.message}
-              />
-            )}
-          />
+          {item && (
+            <Controller
+              name="customId"
+              control={control}
+              rules={{ required: 'Custom ID is required' }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label="Custom ID"
+                  fullWidth
+                  margin="normal"
+                  error={!!errors.customId}
+                  helperText={errors.customId?.message}
+                />
+              )}
+            />
+          )}
+
           <Controller
             name="data"
             control={control}
@@ -137,6 +140,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
               />
             )}
           />
+          
           <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
             <Button onClick={onClose}>Cancel</Button>
             <Button type="submit" variant="contained" disabled={isSubmitting}>
