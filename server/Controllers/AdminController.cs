@@ -112,7 +112,6 @@ public class AdminController : ControllerBase
             if (!r.Succeeded) return BadRequest(r.Errors);
         }
 
-        // Self-demote разрешён по ТЗ.
         return NoContent();
     }
 
