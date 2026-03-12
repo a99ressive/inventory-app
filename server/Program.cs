@@ -152,9 +152,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync();
+}
+
 await SeedRolesAndAdminAsync(app);
 
-app.Run();
+await app.RunAsync();
 
 static async Task SeedRolesAndAdminAsync(WebApplication app)
 {
