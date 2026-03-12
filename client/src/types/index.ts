@@ -1,3 +1,4 @@
+// src/types.ts
 export interface Inventory {
   Id: string;
   Title: string;
@@ -31,9 +32,10 @@ export interface User {
 }
 
 export interface CustomField {
-  Title: string
-  Type: string
-  Description?: string | null
+  Type: string;
+  Title: string;
+  Description?: string | null;
+  ShowInTable: boolean;
 }
 
 export interface InventoryComment {

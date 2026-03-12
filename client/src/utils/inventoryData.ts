@@ -31,19 +31,21 @@ export function parseCustomFields(raw: unknown): CustomField[] {
 
   return raw
     .filter(isObject)
-    .map((field): CustomField | null => {
+    .map((field) => {
       const type = getString(field, 'Type', 'type');
       const title = getString(field, 'Title', 'title');
       const description = getString(field, 'Description', 'description');
 
       if (!type || !title) return null;
 
-      return {
+      const result: CustomField = {
         Type: type,
         Title: title,
         Description: description,
         ShowInTable: getBoolean(field, 'ShowInTable', 'showInTable'),
       };
+
+      return result;
     })
     .filter((field): field is CustomField => field !== null);
 }
