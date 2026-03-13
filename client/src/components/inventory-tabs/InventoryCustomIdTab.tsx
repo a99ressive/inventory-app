@@ -72,8 +72,6 @@ function parseConfig(raw: unknown): IdConfig {
   return { Elements: [{ Type: 'Sequence', Padding: 4 }] };
 }
 
-const DEFAULT_NEW_ELEMENT: IdElement = { Type: 'Sequence', Padding: 4 };
-
 const InventoryCustomIdTab: React.FC<InventoryCustomIdTabProps> = ({
   inventoryId,
   customIdConfig,
