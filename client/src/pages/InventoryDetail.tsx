@@ -13,7 +13,7 @@ import {
   Chip,
 } from '@mui/material';
 import api from '../api/axios';
-import type { Inventory, Item } from '../types';
+import type { Inventory, Item, CustomField } from '../types';
 import AccessSettingsTab from '../components/AccessSettingsTab';
 import InventoryItemsTab from '../components/inventory-tabs/InventoryItemsTab';
 import InventoryDiscussionTab from '../components/inventory-tabs/InventoryDiscussionTab';
@@ -80,6 +80,14 @@ const InventoryDetail: React.FC = () => {
 
   const onInventoryUpdated = (patch: Partial<Inventory>) => {
     setInventory((prev) => (prev ? { ...prev, ...patch } : prev));
+  };
+
+  const onFieldsUpdated = (newFields: CustomField[]) => {
+    setInventory((prev) =>
+      prev
+        ? { ...prev, CustomFields: newFields as unknown as typeof prev.CustomFields }
+        : prev
+    );
   };
 
   if (loading) return <CircularProgress />;
@@ -169,8 +177,10 @@ const InventoryDetail: React.FC = () => {
 
       {tab === 5 && (
         <InventoryFieldsTab
+          inventoryId={id} 
           customFields={inventory.CustomFields}
           canEdit={permissions.canEditFields}
+          onFieldsUpdated={onFieldsUpdated}
         />
       )}
 
