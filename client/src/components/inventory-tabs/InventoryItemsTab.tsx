@@ -21,6 +21,7 @@ interface InventoryItemsTabProps {
   items: Item[];
   canWrite: boolean;
   tableFields: CustomField[];
+  allFields: CustomField[];
   onRefresh: () => void;
 }
 
@@ -41,6 +42,7 @@ const InventoryItemsTab: React.FC<InventoryItemsTabProps> = ({
   items,
   canWrite,
   tableFields,
+  allFields,
   onRefresh,
 }) => {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
@@ -178,7 +180,7 @@ const InventoryItemsTab: React.FC<InventoryItemsTabProps> = ({
         onClose={()=>setModalOpen(false)}
         inventoryId={inventoryId}
         item={editingItem}
-        fields={tableFields}
+        fields={allFields}
         onSuccess={onRefresh}
       />
     </>

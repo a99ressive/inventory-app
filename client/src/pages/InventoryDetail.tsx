@@ -131,6 +131,7 @@ const InventoryDetail: React.FC = () => {
           items={items}
           canWrite={permissions.canWriteItems}
           tableFields={tableFields}
+          allFields={customFields} 
           onRefresh={loadData}
         />
       )}

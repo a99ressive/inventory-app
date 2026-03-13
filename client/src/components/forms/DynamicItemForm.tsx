@@ -18,7 +18,9 @@ const DynamicItemForm: React.FC<Props> = ({ fields, values, onChange }) => {
 
         switch (field.Type) {
 
+          case "string":
           case "SingleLineText":
+          case "text":
           case "MultiLineText": {
 
             const value = typeof rawValue === "string" ? rawValue : ""
@@ -27,8 +29,8 @@ const DynamicItemForm: React.FC<Props> = ({ fields, values, onChange }) => {
               <TextField
                 key={field.Title}
                 label={field.Title}
-                multiline={field.Type === "MultiLineText"}
-                rows={field.Type === "MultiLineText" ? 4 : undefined}
+                multiline={field.Type === "MultiLineText" || field.Type === "text"}
+                rows={(field.Type === "MultiLineText" || field.Type === "text") ? 4 : undefined}
                 helperText={field.Description}
                 value={value}
                 onChange={(e) => onChange(field.Title, e.target.value)}
@@ -36,6 +38,7 @@ const DynamicItemForm: React.FC<Props> = ({ fields, values, onChange }) => {
             )
           }
 
+          case "number":
           case "Number": {
 
             const value = typeof rawValue === "number" ? rawValue : 0
@@ -51,6 +54,7 @@ const DynamicItemForm: React.FC<Props> = ({ fields, values, onChange }) => {
             )
           }
 
+          case "boolean":
           case "Boolean": {
 
             const value = typeof rawValue === "boolean" ? rawValue : false
@@ -65,6 +69,21 @@ const DynamicItemForm: React.FC<Props> = ({ fields, values, onChange }) => {
                   />
                 }
                 label={field.Title}
+              />
+            )
+          }
+
+          case "link":
+          case "Link": {
+            const value = typeof rawValue === "string" ? rawValue : ""
+            return (
+              <TextField
+                key={field.Title}
+                label={field.Title}
+                helperText={field.Description}
+                placeholder="https://..."
+                value={value}
+                onChange={(e) => onChange(field.Title, e.target.value)}
               />
             )
           }
