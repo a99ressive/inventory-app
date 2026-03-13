@@ -16,8 +16,8 @@ import {
 } from '@mui/material';
 
 interface InventoryType {
-  id: number;
-  name: string;
+  Id: number;
+  Name: string;
 }
 
 const CreateInventory: React.FC = () => {
@@ -35,7 +35,7 @@ const CreateInventory: React.FC = () => {
       .then(res => {
         setTypes(res.data);
         if (res.data.length > 0) {
-          setInventoryTypeId(res.data[0].id);
+          setInventoryTypeId(res.data[0].Id);
         }
       })
       .catch(() => {
@@ -110,8 +110,8 @@ const CreateInventory: React.FC = () => {
             onChange={(e) => setInventoryTypeId(Number(e.target.value))}
           >
             {types.map(type => (
-              <MenuItem key={type.id} value={type.id}>
-                {type.name}
+              <MenuItem key={type.Id} value={type.Id}>
+                {type.Name}
               </MenuItem>
             ))}
           </Select>

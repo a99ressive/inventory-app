@@ -19,8 +19,8 @@ import api from '../../api/axios';
 import type { Inventory } from '../../types';
 
 interface InventoryType {
-  id: number;
-  name: string;
+  Id: number;
+  Name: string;
 }
 
 interface InventoryGeneralTabProps {
@@ -146,8 +146,8 @@ const InventoryGeneralTab: React.FC<InventoryGeneralTabProps> = ({
           >
 
             {types.map(type => (
-              <MenuItem key={type.id} value={type.id}>
-                {type.name}
+              <MenuItem key={type.Id} value={type.Id}>
+                {type.Name}
               </MenuItem>
             ))}
 
