@@ -29,7 +29,7 @@ public class Inventory
 
     public JsonDocument? CustomFields { get; set; }
 
-    public NpgsqlTsVector? SearchVector { get; set; }   // ← исправлено
+    public NpgsqlTsVector? SearchVector { get; set; }
 
     public List<InventoryTag> Tags { get; set; } = new();
 

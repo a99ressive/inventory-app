@@ -4,10 +4,10 @@
     {
         public CustomIdElementType Type { get; set; }
 
-        public string? Value { get; set; }   // FixedText
+        public string? Value { get; set; }
 
-        public string? Format { get; set; }  // DateTime
+        public string? Format { get; set; }
 
-        public int? Padding { get; set; }    // Sequence or numeric formatting
+        public int? Padding { get; set; }
     }
 }

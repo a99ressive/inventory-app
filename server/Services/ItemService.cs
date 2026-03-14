@@ -39,7 +39,6 @@ public class ItemService : IItemService
 
         ValidateItemData(inventory, dto.Data);
 
-        // Попытки генерации уникального ID (до 3 раз)
         const int maxAttempts = 3;
         for (int attempt = 1; attempt <= maxAttempts; attempt++)
         {
@@ -67,7 +66,6 @@ public class ItemService : IItemService
             {
                 if (attempt == maxAttempts)
                     throw new InvalidOperationException("Failed to generate a unique Custom ID. Try again or set it manually.");
-                // иначе продолжаем цикл
             }
         }
 
@@ -94,7 +92,6 @@ public class ItemService : IItemService
         if (!await HasWriteAccess(inventory, userId, user))
             throw new UnauthorizedAccessException();
 
-        // Валидация Custom ID в соответствии с текущей конфигурацией инвентаря
         if (inventory.CustomIdConfig != null)
         {
             var config = JsonSerializer.Deserialize<CustomIdConfig>(
@@ -103,7 +100,6 @@ public class ItemService : IItemService
                 throw new InvalidOperationException("Custom ID does not match inventory format.");
         }
 
-        // Проверка уникальности Custom ID (кроме самого себя)
         bool duplicate = await _context.Items
             .AnyAsync(i => i.InventoryId == inventoryId && i.CustomId == dto.CustomId && i.Id != itemId);
         if (duplicate)

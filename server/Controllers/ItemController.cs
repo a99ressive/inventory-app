@@ -25,7 +25,6 @@ public class ItemController : ControllerBase
     private string CurrentUserId =>
         CurrentUserIdOrNull ?? throw new UnauthorizedAccessException();
 
-    // CREATE
     [HttpPost]
     public async Task<IActionResult> Create(Guid inventoryId, CreateItemDto dto)
     {
@@ -50,7 +49,6 @@ public class ItemController : ControllerBase
         }
     }
 
-    // GET
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> GetAll(Guid inventoryId)
@@ -64,7 +62,6 @@ public class ItemController : ControllerBase
         return Ok(items);
     }
 
-    // UPDATE
     [HttpPut("{itemId}")]
     public async Task<IActionResult> Update(
         Guid inventoryId,
@@ -93,7 +90,6 @@ public class ItemController : ControllerBase
         }
     }
 
-    // DELETE
     [HttpDelete("{itemId}")]
     public async Task<IActionResult> Delete(
         Guid inventoryId,

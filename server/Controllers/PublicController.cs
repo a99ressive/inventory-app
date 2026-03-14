@@ -28,7 +28,6 @@ public class PublicController : ControllerBase
     {
         try
         {
-            // === 1. Запрос для подсчёта количества предметов ===
             var itemCountsQuery = _context.Items
                 .AsNoTracking()
                 .GroupBy(i => i.InventoryId)
@@ -38,7 +37,6 @@ public class PublicController : ControllerBase
                     Count = (int?)g.Count()
                 });
 
-            // === 2. Базовый запрос (инвентари + владельцы + количество предметов) ===
             var baseQuery =
                 from inv in _context.Inventories.AsNoTracking()
                 join owner in _context.Users.AsNoTracking() on inv.OwnerId equals owner.Id
@@ -53,7 +51,6 @@ public class PublicController : ControllerBase
                     ItemCount = cnt != null ? (cnt.Count ?? 0) : 0
                 };
 
-            // === 3. latestRaw ===
             _logger.LogInformation("Выполняем запрос latestRaw...");
             var latestRaw = await baseQuery
                 .OrderByDescending(x => x.Id)
@@ -61,7 +58,6 @@ public class PublicController : ControllerBase
                 .ToListAsync();
             _logger.LogInformation("latestRaw загружен, записей: {Count}", latestRaw.Count);
 
-            // === 4. topRaw ===
             _logger.LogInformation("Выполняем запрос topRaw...");
             var topRaw = await baseQuery
                 .OrderByDescending(x => x.ItemCount)
@@ -70,13 +66,11 @@ public class PublicController : ControllerBase
                 .ToListAsync();
             _logger.LogInformation("topRaw загружен, записей: {Count}", topRaw.Count);
 
-            // === 5. Собираем ID для тегов ===
             var ids = latestRaw.Select(x => x.Id)
                 .Concat(topRaw.Select(x => x.Id))
                 .Distinct()
                 .ToList();
 
-            // === 6. Загружаем теги по этим ID ===
             _logger.LogInformation("Выполняем запрос tagsByInventory...");
             var tagsByInventory = await _context.InventoryTags
                 .AsNoTracking()
@@ -92,7 +86,6 @@ public class PublicController : ControllerBase
 
             var tagsMap = tagsByInventory.ToDictionary(x => x.InventoryId, x => x.Tags);
 
-            // === 7. Формируем latest с тегами ===
             var latest = latestRaw.Select(x => new PublicInventoryRowDto
             {
                 Id = x.Id,
@@ -103,7 +96,6 @@ public class PublicController : ControllerBase
                 Tags = tagsMap.TryGetValue(x.Id, out var tags) ? tags : new List<string>()
             }).ToList();
 
-            // === 8. Формируем topPopular с тегами ===
             var topPopular = topRaw.Select(x => new PublicInventoryRowDto
             {
                 Id = x.Id,
@@ -114,7 +106,6 @@ public class PublicController : ControllerBase
                 Tags = tagsMap.TryGetValue(x.Id, out var tags) ? tags : new List<string>()
             }).ToList();
 
-            // === 9. Загружаем tagCloud ===
             _logger.LogInformation("Выполняем запрос tagCloud...");
             var tagCloud = await _context.InventoryTags
                 .AsNoTracking()
