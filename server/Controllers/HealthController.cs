@@ -8,7 +8,7 @@ namespace server.Controllers;
 public class HealthController : ControllerBase
 {
     [HttpGet]
-    [Authorize]
+    [AllowAnonymous] 
     public IActionResult Get()
     {
         return Ok(new { status = "OK" });

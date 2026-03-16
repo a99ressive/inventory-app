@@ -44,7 +44,7 @@ public class InventoryService : IInventoryService
             IsPublic = dto.IsPublic,
             CustomIdConfig = JsonDocument.Parse(JsonSerializer.Serialize(defaultConfig)),
             LastSequence = 0,
-            CustomFields = null // ???? ??? ?????
+            CustomFields = null
         };
 
         inventory.Tags = NormalizeTags(dto.Tags)

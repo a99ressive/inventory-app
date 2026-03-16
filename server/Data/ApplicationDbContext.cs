@@ -8,7 +8,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
 
-    public DbSet<TestEntity> TestEntities => Set<TestEntity>();
     public DbSet<Inventory> Inventories => Set<Inventory>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<InventoryUserAccess> InventoryUserAccesses => Set<InventoryUserAccess>();
