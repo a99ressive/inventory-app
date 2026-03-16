@@ -71,7 +71,6 @@ public class InventoryService : IInventoryService
         if (!HasOwnerRights(inventory, userId, user))
             throw new UnauthorizedAccessException();
 
-        // ????????? ????
         inventory.Title = dto.Title;
         inventory.Description = dto.Description;
         inventory.InventoryTypeId = dto.InventoryTypeId;
