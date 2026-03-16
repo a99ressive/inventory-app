@@ -3,7 +3,6 @@ using server.Data;
 using server.DTOs;
 using server.Models;
 using server.Models.CustomId;
-using server.Models.Enums;
 using System.Security.Claims;
 using System.Text.Json;
 
